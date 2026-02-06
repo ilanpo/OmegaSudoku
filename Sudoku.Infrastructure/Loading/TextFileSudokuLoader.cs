@@ -17,67 +17,77 @@ namespace Sudoku.Infrastructure.Loading
         {
             if (source.Length < 260 && File.Exists(source))
             {
-                string? firstLine = File.ReadLines(source).FirstOrDefault();
-
-                if (firstLine != null && firstLine.Trim().Length >= _n * _n)
-                {
-                    return LoadFromOneLineFile(source);
-                }
-                else
-                {
-                    return LoadFromGridFile(source);
-                }
+                var puzzle = LoadAllPuzzles(source).FirstOrDefault();
+                return puzzle ?? throw new IOException($"No valid {n}x{n} puzzle found in file: {source}");
             }
 
             return LoadFromOneLineString(source);
         }
 
-        private int[,] LoadFromGridFile(string filePath)
+        public IEnumerable<int[,]> LoadAllPuzzles(string filePath)
         {
-            var grid = new int[_n, _n];
-            try
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"File not found {filePath}");
+
+            var currentGridLines = new List<string>();
+
+            foreach (string rawLine in File.ReadLines(filePath))
             {
-                string[] lines = File.ReadAllLines(filePath);
-                int row = 0;
+                string line = rawLine.Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
 
-                foreach (var line in lines)
+                int digitCount = line.Count(c => char.IsDigit(c) || c == '.');
+
+                if (digitCount >= _totalCells)
                 {
-                    if (string.IsNullOrWhiteSpace(line) || row > _n) continue;
+                    currentGridLines.Clear();
 
-                    string[] vals = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    int[,] puzzle = null;
+                    try { puzzle = LoadFromOneLineString(line); } catch { }
 
-                    if (vals.Length != _n)
-                        throw new FormatException($"Error in file {filePath}: row {row} does not contain {_n} numbers.");
+                    if (puzzle != null) yield return puzzle;
+                }
+                else
+                {
+                    currentGridLines.Add(line);
 
-                    for (int col = 0; col < vals.Length; col++)
+                    if (currentGridLines.Count == _n)
                     {
-                        grid[row, col] = int.Parse(vals[col]);
+                        int[,]? gridPuzzle = LoadFromGrid(currentGridLines);
+                        if (gridPuzzle != null)
+                        {
+                            yield return gridPuzzle;
+                        }
+                        currentGridLines.Clear();
                     }
-                    row++;
                 }
             }
-            catch (Exception ex)
+        }
+
+        private int[,]? LoadFromGrid(List<string> rows)
+        {
+            var grid = new int[_n, _n];
+            int row = 0;
+
+            foreach (string line in rows)
             {
-                throw new IOException("Failed to read grid file", ex);
+                var validChars = line.Where(c => char.IsDigit(c) || c == '.').ToList();
+
+                if (validChars.Count != _n)
+                {
+                    return null;
+                }
+
+                for (int col = 0; col < _n; col++)
+                {
+                    char c = validChars[col];
+                    grid[row, col] = (c == '.') ? 0 : c - '0';
+                }
+                row++;
             }
+
             return grid;
         }
-
-        private int[,] LoadFromOneLineFile(string filePath)
-        {
-            string fileContent;
-            try
-            {
-                fileContent = File.ReadAllText(filePath).Trim();
-            }
-            catch (Exception ex)
-            {
-                throw new IOException($"Failed to read One-Line File: {filePath}", ex);
-            }
-
-            return LoadFromOneLineString(fileContent);
-        }
-
 
         private int[,] LoadFromOneLineString(string input)
         {
@@ -90,7 +100,7 @@ namespace Sudoku.Infrastructure.Loading
 
             if (cleanDigits.Count != _n * _n)
             {
-                throw new ArgumentException($"Invalid puzzle string. expected {_n * _n} digits, found {cleanDigits.Count}.");
+                throw new Exception($"invalid puzzle string expected {_n * _n} digits, found {cleanDigits.Count}.");
             }
 
             var grid = new int[_n, _n];
