@@ -9,5 +9,7 @@ namespace Sudoku.Core.Interfaces
     public interface ISudokuLoader
     {
         int[,] LoadPuzzle(string source);
+
+        IEnumerable<int[,]> LoadAllPuzzles(string filePath);
     }
 }
