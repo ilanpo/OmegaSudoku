@@ -8,7 +8,7 @@ namespace Sudoku.Solvers
     {
         public long SearchCounter { get; private set; }
 
-        public ISudokuBoard? Solve(ISudokuBoard sudoku, string strategies = "")
+        public ISudokuBoard? Solve(ISudokuBoard sudoku, string? strategies = "")
         {
             SearchCounter++;
 
@@ -60,7 +60,38 @@ namespace Sudoku.Solvers
             SearchCounter = 0;
         }
 
-        private static bool CandidateReduction(ISudokuBoard sudoku) => false;
+        private bool CandidateReduction(ISudokuBoard sudoku)
+        {
+            bool nonStable = true;
+
+            while (nonStable)
+            {
+                nonStable = false;
+
+                List<(int row, int col)> nonAssignedCells = sudoku.GetNonAssignedCells();
+
+                if (nonAssignedCells == null) return false;
+                if (nonAssignedCells.Count == 0) return true;
+
+                foreach ((int row, int col) in nonAssignedCells)
+                {
+                    List<int> candidates = sudoku.GetCellCandidates(row, col);
+
+                    if (candidates.Count == 0)
+                    {
+                        // dead end because cell is empty but has no legal moves left
+                        return false;
+                    }
+                    else if (candidates.Count == 1)
+                    {
+                        sudoku.SetCellValue(row, col, candidates[0]);
+                        nonStable = true; // board changed so we must restart the loop to propagate constraints
+                    }
+                }
+            }
+
+            return true;
+        }
         private static bool UniqueCandidate(ISudokuBoard sudoku) => false;
         private static bool HiddenPair(ISudokuBoard sudoku) => false;
         private static bool NakedPair(ISudokuBoard sudoku) => false;
