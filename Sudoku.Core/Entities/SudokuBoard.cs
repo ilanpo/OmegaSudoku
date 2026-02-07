@@ -1,8 +1,9 @@
-﻿using Sudoku.Core.Interfaces;
-using Sudoku.Core.Extensions;
+﻿using Sudoku.Core.Extensions;
+using Sudoku.Core.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -82,10 +83,12 @@ namespace Sudoku.Core.Entities
 
         public List<int> GetCellCandidates(int row, int col)
         {
-            var list = new List<int>();
-            for (int k = 0; k < EdgeSize; k++)
-                if (_cellConstraints[row-1, col-1][k]) list.Add(k + 1);
-            return list;
+            var candidates = new List<int>();
+            for (int val = 1; val <= EdgeSize; val++)
+            {
+                if (IsLegalAssignment(row, col, val)) candidates.Add(val);
+            }
+            return candidates;
         }
 
         public void RemoveCellCandidate(int row, int col, int val)
@@ -166,6 +169,20 @@ namespace Sudoku.Core.Entities
             return (row / BlockSize) * BlockSize + (col / BlockSize);
         }
 
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder(EdgeSize * EdgeSize);
+
+            for (int row = 0; row < EdgeSize; row++)
+            {
+                for (int col = 0; col < EdgeSize; col++)
+                {
+                    sb.Append(_puzzle[row, col]);
+                }
+            }
+
+            return sb.ToString();
+        }
     }
 }
     
