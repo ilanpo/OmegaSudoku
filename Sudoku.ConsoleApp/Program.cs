@@ -14,6 +14,11 @@ namespace Sudoku.ConsoleApp
         static void Main(string[] args)
         {
             Console.WriteLine("=== Omega Sudoku ===");
+            Console.WriteLine("Block size: size of each of the blocks of the suduko so 3 for standard 9x9 board, 2 for 4x4 board etc\n");
+            Console.WriteLine("Heuristic strategies: r -> Candidate 'r'eduction, u -> 'u'nique Candidate, h -> 'h'idden Pair, n -> 'n'aked Pair");
+            Console.WriteLine("so type 'ruhn' for all the strategies or leave it blank for just backtracking\n");
+            Console.WriteLine("Input: either path to .txt file (supports one line puzzles as well as grids) or a string containing a puzzle\n");
+            Console.WriteLine("Show: if yes then renders a nice looking board, if no just spits out a string containing the solution\n");
             Console.WriteLine("type 'exit' or 'quit' at any prompt to quit");
 
             while (true)
@@ -22,12 +27,12 @@ namespace Sudoku.ConsoleApp
                 {
                     Console.WriteLine("--------------------------------------------------");
 
-                    string? sizeInput = PromptUser("Enter block size (3 for standard 9x9, 2 for 4x4 board etc):");
+                    string? sizeInput = PromptUser("Enter block size (3 for standard 9x9 board, 2 for 4x4 board etc):");
                     if (IsExit(sizeInput)) break;
                     int blockSize = string.IsNullOrWhiteSpace(sizeInput) ? 3 : int.Parse(sizeInput);
                     ValidateBlockSize(blockSize);
 
-                    string? strategies = PromptUser("Which strategies to use? (blank for no strategies i.e only backtracking):");
+                    string? strategies = PromptUser("Which strategies to use:");
                     if (IsExit(strategies)) break;
 
                     string? input = PromptUser("Enter path to .txt file or string containing puzzle:");
@@ -107,6 +112,7 @@ namespace Sudoku.ConsoleApp
             {
                 Console.WriteLine($"Puzzle #{index}: solved ({solver.SearchCounter} ops)");
                 if (show) renderer.Render(solution);
+                else Console.WriteLine($"Solution: {solution}");
             }
             else
             {
