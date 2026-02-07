@@ -41,15 +41,12 @@ namespace Sudoku.Solvers
 
             foreach (int val in candidates)
             {
-                if (sudoku.IsLegalAssignment(row, col, val))
-                {
-                    ISudokuBoard nextState = sudoku.Clone();
-                    nextState.SetCellValue(row, col, val);
+                ISudokuBoard nextState = sudoku.Clone();
+                nextState.SetCellValue(row, col, val);
 
-                    ISudokuBoard? result = Solve(nextState, strategies);
+                ISudokuBoard? result = Solve(nextState, strategies);
 
-                    if (result != null) return result;
-                }
+                if (result != null) return result;
             }
 
             return null;
