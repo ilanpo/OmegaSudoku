@@ -89,7 +89,96 @@ namespace Sudoku.Solvers
 
             return true;
         }
-        private static bool UniqueCandidate(ISudokuBoard sudoku) => false;
+        private bool UniqueCandidate(ISudokuBoard sudoku)
+        {
+            bool nonStable = true;
+
+            while (nonStable)
+            {
+                nonStable = false;
+                var nonAssignedCells = sudoku.GetNonAssignedCells();
+
+                if (nonAssignedCells.Count == 0) return true;
+
+                foreach (var (row, col) in nonAssignedCells)
+                {
+                    var candidates = sudoku.GetCellCandidates(row, col);
+
+                    if (candidates.Count == 0) return false; // board invalid
+
+                    bool valueSet = false;
+
+                    foreach (int val in candidates)
+                    {
+                        // check if val is unique in row, column, or block
+                        if (IsUniqueInUnit(sudoku, row, col, val, "Row") ||
+                            IsUniqueInUnit(sudoku, row, col, val, "Col") ||
+                            IsUniqueInUnit(sudoku, row, col, val, "block"))
+                        {
+                            sudoku.SetCellValue(row, col, val);
+                            nonStable = true;
+                            valueSet = true;
+                            break;
+                        }
+                    }
+
+                    // if board was modified break to work with newer board
+                    if (valueSet) break;
+                }
+
+                // validate with candidate reduction
+                if (nonStable)
+                {
+                    if (!CandidateReduction(sudoku)) return false;
+                }
+            }
+
+            return true;
+        }
+
+        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
+        {
+            var unitCells = new List<(int row, int col)>();
+
+            if (unitType == "row")
+            {
+                for (int col = 0; col < sudoku.EdgeSize; col++) unitCells.Add((startRow, col));
+            }
+            else if (unitType == "col")
+            {
+                for (int row = 0; row < sudoku.EdgeSize; row++) unitCells.Add((row, startCol));
+            }
+            else // block
+            {
+                int startBlockRow = (startRow / sudoku.BlockSize) * sudoku.BlockSize;
+                int startBlockCol = (startCol / sudoku.BlockSize) * sudoku.BlockSize;
+                for (int r = 0; r < sudoku.BlockSize; r++)
+                    for (int c = 0; c < sudoku.BlockSize; c++)
+                        unitCells.Add((startBlockRow + r, startBlockCol + c));
+            }
+
+            return unitCells;
+        }
+
+        private bool IsUniqueInUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
+        {
+            var unitCells = MakeUnit(sudoku, startRow, startCol, val, unitType);
+
+            foreach (var (row, col) in unitCells)
+            {
+                if (row == startRow && col == startCol) continue;
+
+                if (sudoku.IsSet(row, col)) continue;
+
+                var neighborsCandidates = sudoku.GetCellCandidates(row, col);
+                if (neighborsCandidates.Contains(val))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         private static bool HiddenPair(ISudokuBoard sudoku) => false;
         private static bool NakedPair(ISudokuBoard sudoku) => false;
     }
