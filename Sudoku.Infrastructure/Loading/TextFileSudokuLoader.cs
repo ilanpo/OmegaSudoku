@@ -10,14 +10,14 @@ namespace Sudoku.Infrastructure.Loading
 {
     public class TextFileSudokuLoader(int n) : ISudokuLoader
     {
-        private readonly int _n = n;
+        private readonly int _edgeSize = n;
         private readonly int _totalCells = n * n;
 
         public int[,] LoadPuzzle(string source)
         {
             if (source.Length < 260 && File.Exists(source))
             {
-                var puzzle = LoadAllPuzzles(source).FirstOrDefault();
+                int[,]? puzzle = LoadAllPuzzles(source).FirstOrDefault();
                 return puzzle ?? throw new IOException($"No valid {n}x{n} puzzle found in file: {source}");
             }
 
@@ -42,7 +42,7 @@ namespace Sudoku.Infrastructure.Loading
                 {
                     currentGridLines.Clear();
 
-                    int[,] puzzle = null;
+                    int[,]? puzzle = null;
                     try { puzzle = LoadFromOneLineString(line); } catch { }
 
                     if (puzzle != null) yield return puzzle;
@@ -51,7 +51,7 @@ namespace Sudoku.Infrastructure.Loading
                 {
                     currentGridLines.Add(line);
 
-                    if (currentGridLines.Count == _n)
+                    if (currentGridLines.Count == _edgeSize)
                     {
                         int[,]? gridPuzzle = LoadFromGrid(currentGridLines);
                         if (gridPuzzle != null)
@@ -66,19 +66,19 @@ namespace Sudoku.Infrastructure.Loading
 
         private int[,]? LoadFromGrid(List<string> rows)
         {
-            var grid = new int[_n, _n];
+            var grid = new int[_edgeSize, _edgeSize];
             int row = 0;
 
             foreach (string line in rows)
             {
                 var validChars = line.Where(c => char.IsDigit(c) || c == '.').ToList();
 
-                if (validChars.Count != _n)
+                if (validChars.Count != _edgeSize)
                 {
                     return null;
                 }
 
-                for (int col = 0; col < _n; col++)
+                for (int col = 0; col < _edgeSize; col++)
                 {
                     char c = validChars[col];
                     grid[row, col] = (c == '.') ? 0 : c - '0';
@@ -98,16 +98,16 @@ namespace Sudoku.Infrastructure.Loading
                     cleanDigits.Add(int.Parse(c.ToString()));
             }
 
-            if (cleanDigits.Count != _n * _n)
+            if (cleanDigits.Count != _totalCells)
             {
-                throw new Exception($"invalid puzzle string expected {_n * _n} digits, found {cleanDigits.Count}.");
+                throw new Exception($"invalid puzzle string expected {_totalCells} digits, found {cleanDigits.Count}.");
             }
 
-            var grid = new int[_n, _n];
+            var grid = new int[_edgeSize, _edgeSize];
             int index = 0;
-            for (int row = 0; row < _n; row++)
+            for (int row = 0; row < _edgeSize; row++)
             {
-                for (int col = 0; col < _n; col++)
+                for (int col = 0; col < _edgeSize; col++)
                 {
                     grid[row, col] = cleanDigits[index++];
                 }
