@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Sudoku.Core.Interfaces;
+using System;
 using System.Collections.Generic;
-using Sudoku.Core.Interfaces;
+using System.Numerics;
 
 namespace Sudoku.Solvers
 {
@@ -8,7 +9,23 @@ namespace Sudoku.Solvers
     {
         public long SearchCounter { get; private set; }
 
+        private bool _useCandidateReduction = false;
+        private bool _useUniqueCandidate = false;
+        private bool _useHiddenPair = false;
+        private bool _useNakedPair = false;
+
         public ISudokuBoard? Solve(ISudokuBoard sudoku, string? strategies = "")
+        {
+            if (strategies.Contains('r')) _useCandidateReduction = true;
+            if (strategies.Contains('u')) _useUniqueCandidate = true;
+            if (strategies.Contains('h')) _useHiddenPair = true;
+            if (strategies.Contains('n')) _useNakedPair = true;
+
+            return RecursiveSolve(sudoku);
+        }
+
+
+        public ISudokuBoard? RecursiveSolve(ISudokuBoard sudoku)
         {
             SearchCounter++;
 
@@ -17,35 +34,33 @@ namespace Sudoku.Solvers
             if (sudoku.IsSolved())
                 return sudoku;
 
-            if (!string.IsNullOrEmpty(strategies))
+            if (_useCandidateReduction && CandidateReduction(sudoku) && sudoku.IsSolved()) return sudoku;
+            if (_useUniqueCandidate && UniqueCandidate(sudoku) && sudoku.IsSolved()) return sudoku;
+            if (_useHiddenPair && HiddenPair(sudoku) && sudoku.IsSolved()) return sudoku;
+            if (_useNakedPair && NakedPair(sudoku) && sudoku.IsSolved()) return sudoku;
+
+
+            var (row, col, candidateCount) = sudoku.GetBestEmptyCell();
+
+            if (row == -1) return sudoku;
+
+            if (candidateCount == 0) return null;
+
+            int candidatesMask = sudoku.GetCandidatesMask(row, col);
+
+
+            while (candidatesMask != 0)
             {
-                if (strategies.Contains('r') && CandidateReduction(sudoku) && sudoku.IsSolved()) return sudoku;
-                if (strategies.Contains('u') && UniqueCandidate(sudoku) && sudoku.IsSolved()) return sudoku;
-                if (strategies.Contains('h') && HiddenPair(sudoku) && sudoku.IsSolved()) return sudoku;
-                if (strategies.Contains('n') && NakedPair(sudoku) && sudoku.IsSolved()) return sudoku;
-            }
+                int lowBit = candidatesMask & -candidatesMask;
 
+                int val = BitOperations.TrailingZeroCount(lowBit) + 1;
 
-            var nonAssignedCells = sudoku.GetNonAssignedCellsWithCount();
+                candidatesMask ^= lowBit;
 
-            if (nonAssignedCells == null) return null;
-
-            if (nonAssignedCells.Count == 0) return sudoku;
-
-
-            // order the non assigned cells according to number of candidates, and then by their row number
-            nonAssignedCells.Sort((a, b) => a.Count != b.Count ? a.Count - b.Count : a.Row - b.Row);
-
-            var (row, col, count) = nonAssignedCells[0];
-            var candidates = sudoku.GetCellCandidates(row, col);
-
-            foreach (int val in candidates)
-            {
                 ISudokuBoard nextState = sudoku.Clone();
                 nextState.SetCellValue(row, col, val);
 
-                ISudokuBoard? result = Solve(nextState, strategies);
-
+                var result = RecursiveSolve(nextState);
                 if (result != null) return result;
             }
 
