@@ -188,6 +188,53 @@ namespace Sudoku.Core.Entities
             return list;
         }
 
+        public int GetCandidatesMask(int row, int col)
+        {
+            int r = row - 1;
+            int c = col - 1;
+            int index = GetIndex(r, c);
+            int blockIdx = _cellToBlockMap[index];
+
+            int usedMask = _rowConstraints[r] | _columnConstraints[c] | _blockConstraints[blockIdx];
+
+            return ~usedMask & _allOnesMask;
+        }
+
+        public (int Row, int Col, int Count) GetBestEmptyCell()
+        {
+            int minCount = int.MaxValue;
+            int bestRow = -1;
+            int bestCol = -1;
+
+            for (int i = 0; i < TotalCells; i++)
+            {
+                if (_puzzle[i] == 0)
+                {
+                    int r = i / EdgeSize;
+                    int c = i % EdgeSize;
+                    int blockIdx = _cellToBlockMap[i];
+
+                    int usedMask = _rowConstraints[r] | _columnConstraints[c] | _blockConstraints[blockIdx];
+                    int freeMask = ~usedMask & _allOnesMask;
+
+                    int count = BitOperations.PopCount((uint)freeMask);
+
+                    if (count == 0) return (r + 1, c + 1, 0);
+
+                    if (count == 1) return (r + 1, c + 1, 1);
+
+                    if (count < minCount)
+                    {
+                        minCount = count;
+                        bestRow = r + 1;
+                        bestCol = c + 1;
+                    }
+                }
+            }
+
+            return (bestRow, bestCol, minCount);
+        }
+
         private void InitializeConstraints()
         {
             for (int r = 0; r < EdgeSize; r++)

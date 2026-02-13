@@ -28,5 +28,7 @@ namespace Sudoku.Core.Interfaces
         ISudokuBoard Clone();
         List<(int Row, int Col)> GetNonAssignedCells();
         List<(int Row, int Col, int Count)>? GetNonAssignedCellsWithCount();
+        int GetCandidatesMask(int row, int col);
+        (int Row, int Col, int Count) GetBestEmptyCell();
     }
 }
