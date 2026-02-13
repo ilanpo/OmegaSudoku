@@ -11,6 +11,7 @@ namespace Sudoku.Core.Interfaces
     {
         int EdgeSize { get; }
         int BlockSize { get; }
+        int TotalCells { get; }
 
 
         int GetCellValue(int row, int col);
