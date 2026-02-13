@@ -111,8 +111,8 @@ namespace Sudoku.Solvers
                     foreach (int val in candidates)
                     {
                         // check if val is unique in row, column, or block
-                        if (IsUniqueInUnit(sudoku, row, col, val, "Row") ||
-                            IsUniqueInUnit(sudoku, row, col, val, "Col") ||
+                        if (IsUniqueInUnit(sudoku, row, col, val, "row") ||
+                            IsUniqueInUnit(sudoku, row, col, val, "col") ||
                             IsUniqueInUnit(sudoku, row, col, val, "block"))
                         {
                             sudoku.SetCellValue(row, col, val);
@@ -136,22 +136,22 @@ namespace Sudoku.Solvers
             return true;
         }
 
-        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
+        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, string unitType)
         {
             var unitCells = new List<(int row, int col)>();
 
             if (unitType == "row")
             {
-                for (int col = 0; col < sudoku.EdgeSize; col++) unitCells.Add((startRow, col));
+                for (int col = 1; col <= sudoku.EdgeSize; col++) unitCells.Add((startRow, col));
             }
             else if (unitType == "col")
             {
-                for (int row = 0; row < sudoku.EdgeSize; row++) unitCells.Add((row, startCol));
+                for (int row = 1; row <= sudoku.EdgeSize; row++) unitCells.Add((row, startCol));
             }
             else // block
             {
-                int startBlockRow = (startRow / sudoku.BlockSize) * sudoku.BlockSize;
-                int startBlockCol = (startCol / sudoku.BlockSize) * sudoku.BlockSize;
+                int startBlockRow = ((startRow - 1) / sudoku.BlockSize) * sudoku.BlockSize + 1;
+                int startBlockCol = ((startCol - 1) / sudoku.BlockSize) * sudoku.BlockSize + 1;
                 for (int r = 0; r < sudoku.BlockSize; r++)
                     for (int c = 0; c < sudoku.BlockSize; c++)
                         unitCells.Add((startBlockRow + r, startBlockCol + c));
@@ -162,7 +162,7 @@ namespace Sudoku.Solvers
 
         private bool IsUniqueInUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
         {
-            var unitCells = MakeUnit(sudoku, startRow, startCol, val, unitType);
+            var unitCells = MakeUnit(sudoku, startRow, startCol, unitType);
 
             foreach (var (row, col) in unitCells)
             {
