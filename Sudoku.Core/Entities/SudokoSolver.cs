@@ -136,7 +136,7 @@ namespace Sudoku.Solvers
             return true;
         }
 
-        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
+        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, string unitType)
         {
             var unitCells = new List<(int row, int col)>();
 
@@ -162,7 +162,7 @@ namespace Sudoku.Solvers
 
         private bool IsUniqueInUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
         {
-            var unitCells = MakeUnit(sudoku, startRow, startCol, val, unitType);
+            var unitCells = MakeUnit(sudoku, startRow, startCol, unitType);
 
             foreach (var (row, col) in unitCells)
             {
