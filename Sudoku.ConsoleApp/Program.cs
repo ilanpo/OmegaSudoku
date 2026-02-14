@@ -9,8 +9,15 @@ using System.IO;
 
 namespace Sudoku.ConsoleApp
 {
+    /// <summary>
+    /// Console app for sudoku solver
+    /// </summary>
     class Program
     {
+        /// <summary>
+        /// main loop for console app, prompts user for all necessary info like size of suduko, which strategies to use, and the puzzle/puzzles to solve
+        /// </summary>
+        /// <param name="args">not used</param>
         static void Main(string[] args)
         {
             Console.WriteLine("=== Omega Sudoku ===");
@@ -59,6 +66,13 @@ namespace Sudoku.ConsoleApp
             Console.WriteLine("goodbye");
         }
 
+        /// <summary>
+        /// iterates through all puzzles in stream, solves each one and displays time it took, shows longest time taken and number of puzzles solved at the end.
+        /// </summary>
+        /// <param name="puzzleSource"></param>
+        /// <param name="blockSize"></param>
+        /// <param name="strategies"></param>
+        /// <param name="showArg"></param>
         static void HandlePuzzles(IEnumerable<int[,]> puzzleSource, int blockSize, string? strategies, string? showArg)
         {
             var stopwatch_total = Stopwatch.StartNew();
@@ -100,6 +114,14 @@ namespace Sudoku.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// shows result of attempt to solve puzzle
+        /// </summary>
+        /// <param name="grid"> puzzle to solve as 2d array </param>
+        /// <param name="blockSize"> size of puzzle block, standard 9x9 puzzle has 3x3 blocks so block size is 3</param>
+        /// <param name="strategies"> string containing strategies to use in solving </param>
+        /// <param name="index"> index of puzzle in file, only used for nicer message </param>
+        /// <param name="show"> toggle as to whether to show the rendered board or not </param>
         static void SolvePuzzle(int[,] grid, int blockSize, string? strategies, int index, bool show)
         {
             var board = new SudokuBoard(blockSize, grid);
@@ -120,6 +142,12 @@ namespace Sudoku.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// creates puzzle stream from puzzle string/file
+        /// </summary>
+        /// <param name="input"> </param>
+        /// <param name="blockSize"> size of puzzle block, standard 9x9 puzzle has 3x3 blocks so block size is 3</param>
+        /// <returns>puzzle stream of 2d arrays representing initial board states</returns>
         static IEnumerable<int[,]> GetPuzzles(string input, int blockSize)
         {
             ISudokuLoader loader = new TextFileSudokuLoader(blockSize * blockSize);
@@ -137,6 +165,11 @@ namespace Sudoku.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// helper to make sure user does not input invalid block size
+        /// </summary>
+        /// <param name="blockSize"> block size inputted by user </param>
+        /// <exception cref="ArgumentException"> thrown if block size is invalid </exception>
         static void ValidateBlockSize(int blockSize)
         {
             if (blockSize <= 0) throw new ArgumentException("Block size cannot be zero or negative");
@@ -144,6 +177,11 @@ namespace Sudoku.ConsoleApp
             if (blockSize > 3) throw new ArgumentException("Block sizes above 3 are not currently supported as hexadecimal values are not implemented");
         }
 
+        /// <summary>
+        /// small helper to prompt the user for input in a way that is clean looking
+        /// </summary>
+        /// <param name="message"> prompt message </param>
+        /// <returns> user response </returns>
         static string? PromptUser(string message)
         {
             Console.WriteLine(message);
@@ -151,11 +189,21 @@ namespace Sudoku.ConsoleApp
             return Console.ReadLine()?.Trim();
         }
 
+        /// <summary>
+        /// helper to check if user input is some variation of exit or quit
+        /// </summary>
+        /// <param name="input"> user input string </param>
+        /// <returns> whether input was the exit message </returns>
         static bool IsExit(string? input)
         {
             return input != null && (input.Equals("exit", StringComparison.OrdinalIgnoreCase) || input.Equals("quit", StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// helper to check if user input is some variation of y or yes
+        /// </summary>
+        /// <param name="input"> user input string </param>
+        /// <returns> whether input was confirmation message </returns>
         static bool IsYes(string? input)
         {
             return input != null && (input.Equals("y", StringComparison.OrdinalIgnoreCase) || input.Equals("yes", StringComparison.OrdinalIgnoreCase));
