@@ -5,8 +5,14 @@ using System.Numerics;
 
 namespace Sudoku.Solvers
 {
+    /// <summary>
+    /// This class's purpose is to solve the sudoku contained in a given <see cref="ISudokuBoard"/> object
+    /// </summary>
     public class SudokuSolver : ISudokuSolver
     {
+        /// <summary>
+        /// counts how many times the recursive solve was run, not automatically reset
+        /// </summary>
         public long SearchCounter { get; private set; }
 
         private bool _useCandidateReduction = false;
@@ -14,6 +20,14 @@ namespace Sudoku.Solvers
         private bool _useHiddenPair = false;
         private bool _useNakedPair = false;
 
+        /// <summary>
+        /// Method that solves a given sudoku board using strategies specified in given strategies <c>string</c>
+        /// </summary>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="strategies"> a <c>string</c> contining the strategies to be used when solving the suduko, 
+        /// currently supported are candidate reduction ('r') and unique candidate ('u') both would be used if strategies was "ru"
+        /// </param>
+        /// <returns> the solved version of the board or <c>null</c> if the board cannot be solved </returns>
         public ISudokuBoard? Solve(ISudokuBoard sudoku, string? strategies = "")
         {
             if (strategies.Contains('r')) _useCandidateReduction = true;
@@ -24,7 +38,11 @@ namespace Sudoku.Solvers
             return RecursiveSolve(sudoku);
         }
 
-
+        /// <summary>
+        /// The recursive part of the sudoku solution, attempts to use given strategies and only then solves using backtracking on the best empty cell
+        /// </summary>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <returns> the solved version of the board or <c>null</c> if the board cannot be solved </returns>
         public ISudokuBoard? RecursiveSolve(ISudokuBoard sudoku)
         {
             SearchCounter++;
@@ -34,14 +52,14 @@ namespace Sudoku.Solvers
             if (sudoku.IsSolved())
                 return sudoku;
 
-            if (!ApplyStrategies(sudoku)) return null;
+            if (!ApplyStrategies(sudoku)) return null; // board must be be invalid
 
 
             var (row, col, candidateCount) = sudoku.GetBestEmptyCell();
 
-            if (row == -1) return sudoku;
+            if (row == -1) return sudoku; // board solved
 
-            if (candidateCount == 0) return null;
+            if (candidateCount == 0) return null; // board must be be invalid
 
             int candidatesMask = sudoku.GetCandidatesMask(row, col);
 
@@ -64,11 +82,22 @@ namespace Sudoku.Solvers
             return null;
         }
 
+        /// <summary>
+        /// resets the search counter back to 0
+        /// </summary>
         public void ResetCounter()
         {
             SearchCounter = 0;
         }
 
+        /// <summary>
+        /// attempts to solve given sudoku board using active strategies, continues attempts until strategies fail to alter the board
+        /// </summary>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying all active strategies
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool ApplyStrategies(ISudokuBoard sudoku)
         {
             bool changed = true;
@@ -91,6 +120,18 @@ namespace Sudoku.Solvers
             return true;
         }
 
+        /// <summary>
+        /// applies the "candidate reduction" or "hidden single" heuristic to the board
+        /// </summary>
+        /// /// <remarks>
+        /// a "unique candidate" is when a cell is valid only in that cell in that row even if that cell has other candidates, 
+        /// </remarks>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool CandidateReduction(ISudokuBoard sudoku, out bool changed)
         {
             changed = false;
@@ -118,6 +159,18 @@ namespace Sudoku.Solvers
             return true;
         }
 
+        /// <summary>
+        /// applies the "unique candidate" or "naked single" heuristic to the board
+        /// </summary>
+        /// <remarks>
+        /// a "unique candidate" is when a cell is valid only in that cell in that row even if that cell has other candidates, 
+        /// </remarks>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool UniqueCandidate(ISudokuBoard sudoku, out bool changed)
         {
             changed = false;
@@ -144,6 +197,19 @@ namespace Sudoku.Solvers
             return true;
         }
 
+        /// <summary>
+        /// scans a specific row to identify and apply "unique candidate" candidates.
+        /// </summary>
+        /// <remarks>
+        /// this method uses stackalloc to create temporary buffers for high performance
+        /// </remarks>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="row">The 1-based index of the row to check.</param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool CheckRow(ISudokuBoard sudoku, int row, out bool changed)
         {
             int size = sudoku.EdgeSize;
@@ -167,6 +233,19 @@ namespace Sudoku.Solvers
             return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
         }
 
+        /// <summary>
+        /// scans a specific collumn to identify and apply "unique candidate" candidates.
+        /// </summary>
+        /// <remarks>
+        /// this method uses stackalloc to create temporary buffers for high performance
+        /// </remarks>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="row">The 1-based index of the row to check.</param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool CheckCol(ISudokuBoard sudoku, int col, out bool changed)
         {
             int size = sudoku.EdgeSize;
@@ -189,6 +268,19 @@ namespace Sudoku.Solvers
             return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
         }
 
+        /// <summary>
+        /// scans a specific block to identify and apply "unique candidate" candidates.
+        /// </summary>
+        /// <remarks>
+        /// this method uses stackalloc to create temporary buffers for high performance
+        /// </remarks>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="row">The 1-based index of the row to check.</param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool CheckBlock(ISudokuBoard sudoku, int blockIdx, out bool changed)
         {
             int size = sudoku.EdgeSize;
@@ -221,15 +313,26 @@ namespace Sudoku.Solvers
             return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
         }
 
+        /// <summary>
+        /// updates the frequency count for a cells valid values, used to tell if any value appears only once in row collumn or block
+        /// </summary>
+        /// <param name="mask"> the bitmask of valid values for the cell </param>
+        /// <param name="r"> row of cell to count </param>
+        /// <param name="c"> collumn of cell to count </param>
+        /// <param name="counts"> array tracking how often each value appears </param>
+        /// <param name="lastRow"> array tracking the last row for each value </param>
+        /// <param name="lastCol"> array tracking the last collumn for each value </param>
         private void CountCandidates(int mask, int r, int c, Span<int> counts, Span<int> lastRow, Span<int> lastCol)
         {
             while (mask != 0)
             {
-                int lowBit = mask & -mask;
-                int val = BitOperations.TrailingZeroCount(lowBit) + 1;
-                mask ^= lowBit;
+                int lowBit = mask & -mask; // only lowest bit of mask
 
-                if (counts[val] != -99)
+                int val = BitOperations.TrailingZeroCount(lowBit) + 1; // converts bit to 1 based value
+
+                mask ^= lowBit; // removes the lowest bit from mask
+
+                if (counts[val] != -99) // -99 marks values already handled so we skip those
                 {
                     counts[val]++;
                     lastRow[val] = r;
@@ -238,6 +341,18 @@ namespace Sudoku.Solvers
             }
         }
 
+        /// <summary>
+        /// goes through all possible values and checks if value is a unique candidate in given cell
+        /// </summary>
+        /// <param name="sudoku"> <see cref="ISudokuBoard"/> object containing a valid sudoku board </param>
+        /// <param name="counts"> array tracking how often each value appears </param>
+        /// <param name="lastRow"> array tracking the last row for each value </param>
+        /// <param name="lastCol"> array tracking the last collumn for each value </param>
+        /// <param name="changed"> bool value indicative of whether the board was changed by the heuristic or not</param>
+        /// <returns>
+        /// <c>true</c> if the board remains valid after applying strategy
+        /// <c>false</c> if a mismatch was found (like a cell with zero candidates) indicative of a dead end
+        /// </returns>
         private bool FindHiddenSingles(ISudokuBoard sudoku, Span<int> counts, Span<int> lastRow, Span<int> lastCol, out bool changed)
         {
             changed = false;
