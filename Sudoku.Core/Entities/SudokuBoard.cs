@@ -84,6 +84,7 @@ namespace Sudoku.Core.Entities
             _columnConstraints = new int[EdgeSize];
             _blockConstraints = new int[EdgeSize];
             _cellToBlockMap = new int[TotalCells];
+            _banConstraints = new int[TotalCells];
 
             InitializeConstraints();
             LoadInitialData(initialGrid);
@@ -118,6 +119,9 @@ namespace Sudoku.Core.Entities
 
             _cellToBlockMap = new int[TotalCells];
             Buffer.BlockCopy(other._cellToBlockMap, 0, _cellToBlockMap, 0, TotalCells * sizeof(int));
+
+            _banConstraints = new int[TotalCells];
+            Buffer.BlockCopy(other._banConstraints, 0, _banConstraints, 0, TotalCells * sizeof(int));
         }
 
         /// <summary>
