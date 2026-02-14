@@ -42,6 +42,11 @@ namespace Sudoku.Core.Entities
         private readonly int _allOnesMask;
 
         /// <summary>
+        /// 1d array of bitmasks of banned contraints for every cell
+        /// </summary>
+        private readonly int[] _banConstraints;
+
+        /// <summary>
         /// size of the edge of a block, so in a 9x9 suduko every block is 3x3 so the block size is 3
         /// </summary>
         public int BlockSize { get; private set; }
@@ -218,6 +223,25 @@ namespace Sudoku.Core.Entities
         }
 
         /// <summary>
+        /// removes a mask of candidates from a cell
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <param name="maskToRemove">mask of values to remove</param>
+        /// <returns>true if any candidates were removed otherwise false</returns>
+        public bool RemoveCandidates(int row, int col, int maskToRemove)
+        {
+            int index = GetIndex(row - 1, col - 1);
+
+            int actuallyRemoved = maskToRemove & ~_banConstraints[index];
+
+            if (actuallyRemoved == 0) return false;
+
+            _banConstraints[index] |= actuallyRemoved;
+            return true;
+        }
+
+        /// <summary>
         /// scans the contraints to see if puzzle is solved
         /// </summary>
         /// <returns> true if solved, false if not</returns>
@@ -295,7 +319,7 @@ namespace Sudoku.Core.Entities
 
             int usedMask = _rowConstraints[r] | _columnConstraints[c] | _blockConstraints[blockIdx];
 
-            return ~usedMask & _allOnesMask;
+            return (~usedMask & _allOnesMask) & ~_banConstraints[index];
         }
 
         /// <summary>
