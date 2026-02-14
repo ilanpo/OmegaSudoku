@@ -3,6 +3,9 @@ using Sudoku.Core.Interfaces;
 
 namespace Sudoku.Tests
 {
+    /// <summary>
+    /// tests for the sudokuboard class
+    /// </summary>
     public class SudokuBoardTests
     {
         // helper in order to not rely on the loader

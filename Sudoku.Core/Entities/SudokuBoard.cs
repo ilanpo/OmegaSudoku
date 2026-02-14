@@ -1,5 +1,4 @@
-﻿using Sudoku.Core.Extensions;
-using Sudoku.Core.Interfaces;
+﻿using Sudoku.Core.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;

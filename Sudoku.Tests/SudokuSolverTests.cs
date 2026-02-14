@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace Sudoku.Tests
 {
+    /// <summary>
+    /// Tests for the sudokusolver class
+    /// </summary>
     public class SudokuSolverTests
     {
         // helper in order to not rely on the loader
@@ -38,23 +41,23 @@ namespace Sudoku.Tests
             Assert.Empty(result.GetNonAssignedCells());
         }
 
-        /*
-        [Fact]
-        public void Solve_ImpossiblePuzzle_ReturnsNull()
+        [Theory]
+        [InlineData("550000000000000000000000000000000000000000000000000000000000000000000000000000000")]
+        public void Solve_ImpossiblePuzzle_ReturnsNull(string impossible)
         {
-            string impossible = "550000000000000000000000000000000000000000000000000000000000000000000000000000000";
             ISudokuBoard board = CreateBoardFromString(impossible, 3);
             var solver = new SudokuSolver();
 
-            ISudokuBoard? result = solver.Solve(board);
+            ISudokuBoard? result = solver.Solve(board, "ru");
 
             Assert.Null(result);
         }
-        */
 
         [Theory]
-        [InlineData("", 397)]
-        [InlineData("r", 195)]
+        [InlineData("", 74)]
+        [InlineData("r", 37)]
+        [InlineData("u", 40)]
+        [InlineData("ru", 37)]
         public void Solve_UsingStrategy_ExpectedNumberOfSearches(string strategy, int searches)
         {
             int[,] grid = new int[9, 9];
