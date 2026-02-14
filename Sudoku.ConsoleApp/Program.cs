@@ -2,7 +2,6 @@
 using Sudoku.Core.Interfaces;
 using Sudoku.Infrastructure.Loading;  
 using Sudoku.Infrastructure.Rendering;
-using Sudoku.Solvers;
 using System;
 using System.Diagnostics;
 using System.IO;
