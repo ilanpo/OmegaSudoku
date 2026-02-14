@@ -84,6 +84,15 @@ namespace Sudoku.Core.Interfaces
         void RemoveCellCandidate(int row, int col, int val);
 
         /// <summary>
+        /// removes a mask of candidates from a cell
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <param name="maskToRemove">mask of values to remove</param>
+        /// <returns>true if any candidates were removed otherwise false</returns>
+        bool RemoveCandidates(int row, int col, int maskToRemove);
+
+        /// <summary>
         /// clones board into new identical board object
         /// </summary>
         /// <returns>new identical board object</returns>
