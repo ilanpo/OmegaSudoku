@@ -34,10 +34,7 @@ namespace Sudoku.Solvers
             if (sudoku.IsSolved())
                 return sudoku;
 
-            if (_useCandidateReduction && CandidateReduction(sudoku) && sudoku.IsSolved()) return sudoku;
-            if (_useUniqueCandidate && UniqueCandidate(sudoku) && sudoku.IsSolved()) return sudoku;
-            if (_useHiddenPair && HiddenPair(sudoku) && sudoku.IsSolved()) return sudoku;
-            if (_useNakedPair && NakedPair(sudoku) && sudoku.IsSolved()) return sudoku;
+            if (!ApplyStrategies(sudoku)) return null;
 
 
             var (row, col, candidateCount) = sudoku.GetBestEmptyCell();
@@ -72,128 +69,197 @@ namespace Sudoku.Solvers
             SearchCounter = 0;
         }
 
-        private bool CandidateReduction(ISudokuBoard sudoku)
+        private bool ApplyStrategies(ISudokuBoard sudoku)
         {
-            bool nonStable = true;
-
-            while (nonStable)
+            bool changed = true;
+            while (changed)
             {
-                nonStable = false;
+                changed = false;
 
-                List<(int row, int col)> nonAssignedCells = sudoku.GetNonAssignedCells();
-
-                if (nonAssignedCells == null) return false;
-                if (nonAssignedCells.Count == 0) return true;
-
-                foreach ((int row, int col) in nonAssignedCells)
+                if (_useCandidateReduction)
                 {
-                    List<int> candidates = sudoku.GetCellCandidates(row, col);
+                    if (!CandidateReduction(sudoku, out bool reductionChanged)) return false;
+                    if (reductionChanged) changed = true;
+                }
 
-                    if (candidates.Count == 0)
-                    {
-                        // dead end because cell is empty but has no legal moves left
-                        return false;
-                    }
-                    else if (candidates.Count == 1)
-                    {
-                        sudoku.SetCellValue(row, col, candidates[0]);
-                        nonStable = true; // board changed so we must restart the loop to propagate constraints
-                    }
+                if (_useUniqueCandidate)
+                {
+                    if (!UniqueCandidate(sudoku, out bool uniqueChanged)) return false;
+                    if (uniqueChanged) changed = true;
                 }
             }
-
             return true;
         }
-        private bool UniqueCandidate(ISudokuBoard sudoku)
+
+        private bool CandidateReduction(ISudokuBoard sudoku, out bool changed)
         {
-            bool nonStable = true;
+            changed = false;
 
-            while (nonStable)
+            int size = sudoku.EdgeSize;
+            for (int r = 1; r <= size; r++)
             {
-                nonStable = false;
-                var nonAssignedCells = sudoku.GetNonAssignedCells();
-
-                if (nonAssignedCells.Count == 0) return true;
-
-                foreach (var (row, col) in nonAssignedCells)
+                for (int c = 1; c <= size; c++)
                 {
-                    var candidates = sudoku.GetCellCandidates(row, col);
-
-                    if (candidates.Count == 0) return false; // board invalid
-
-                    bool valueSet = false;
-
-                    foreach (int val in candidates)
+                    if (!sudoku.IsSet(r, c))
                     {
-                        // check if val is unique in row, column, or block
-                        if (IsUniqueInUnit(sudoku, row, col, val, "row") ||
-                            IsUniqueInUnit(sudoku, row, col, val, "col") ||
-                            IsUniqueInUnit(sudoku, row, col, val, "block"))
+                        int mask = sudoku.GetCandidatesMask(r, c);
+
+                        if (mask == 0) return false;  // dead end because cell is empty but has no legal moves left
+
+                        if (BitOperations.PopCount((uint)mask) == 1)
                         {
-                            sudoku.SetCellValue(row, col, val);
-                            nonStable = true;
-                            valueSet = true;
-                            break;
+                            int val = BitOperations.TrailingZeroCount(mask) + 1;
+                            sudoku.SetCellValue(r, c, val);
+                            changed = true; // board changed so we must restart the loop to propagate constraints
                         }
                     }
-
-                    // if board was modified break to work with newer board
-                    if (valueSet) break;
                 }
+            }
+            return true;
+        }
 
-                // validate with candidate reduction
-                if (nonStable)
-                {
-                    if (!CandidateReduction(sudoku)) return false;
-                }
+        private bool UniqueCandidate(ISudokuBoard sudoku, out bool changed)
+        {
+            changed = false;
+            int size = sudoku.EdgeSize;
+
+            for (int r = 1; r <= size; r++)
+            {
+                if (!CheckRow(sudoku, r, out bool rowChanged)) return false;
+                if (rowChanged) changed = true;
+            }
+
+            for (int c = 1; c <= size; c++)
+            {
+                if (!CheckCol(sudoku, c, out bool colChanged)) return false;
+                if (colChanged) changed = true;
+            }
+
+            for (int b = 0; b < size; b++)
+            {
+                if (!CheckBlock(sudoku, b, out bool blockChanged)) return false;
+                if (blockChanged) changed = true;
             }
 
             return true;
         }
 
-        private List<(int row, int col)> MakeUnit(ISudokuBoard sudoku, int startRow, int startCol, string unitType)
+        private bool CheckRow(ISudokuBoard sudoku, int row, out bool changed)
         {
-            var unitCells = new List<(int row, int col)>();
+            int size = sudoku.EdgeSize;
 
-            if (unitType == "row")
+            Span<int> counts = stackalloc int[size + 1];
+            Span<int> lastRow = stackalloc int[size + 1];
+            Span<int> lastCol = stackalloc int[size + 1];
+
+            for (int c = 1; c <= size; c++)
             {
-                for (int col = 1; col <= sudoku.EdgeSize; col++) unitCells.Add((startRow, col));
-            }
-            else if (unitType == "col")
-            {
-                for (int row = 1; row <= sudoku.EdgeSize; row++) unitCells.Add((row, startCol));
-            }
-            else // block
-            {
-                int startBlockRow = ((startRow - 1) / sudoku.BlockSize) * sudoku.BlockSize + 1;
-                int startBlockCol = ((startCol - 1) / sudoku.BlockSize) * sudoku.BlockSize + 1;
-                for (int r = 0; r < sudoku.BlockSize; r++)
-                    for (int c = 0; c < sudoku.BlockSize; c++)
-                        unitCells.Add((startBlockRow + r, startBlockCol + c));
+                if (sudoku.IsSet(row, c))
+                {
+                    counts[sudoku.GetCellValue(row, c)] = -99; // Mark as handled
+                }
+                else
+                {
+                    CountCandidates(sudoku.GetCandidatesMask(row, c), row, c, counts, lastRow, lastCol);
+                }
             }
 
-            return unitCells;
+            return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
         }
 
-        private bool IsUniqueInUnit(ISudokuBoard sudoku, int startRow, int startCol, int val, string unitType)
+        private bool CheckCol(ISudokuBoard sudoku, int col, out bool changed)
         {
-            var unitCells = MakeUnit(sudoku, startRow, startCol, unitType);
+            int size = sudoku.EdgeSize;
+            Span<int> counts = stackalloc int[size + 1];
+            Span<int> lastRow = stackalloc int[size + 1];
+            Span<int> lastCol = stackalloc int[size + 1];
 
-            foreach (var (row, col) in unitCells)
+            for (int r = 1; r <= size; r++)
             {
-                if (row == startRow && col == startCol) continue;
+                if (sudoku.IsSet(r, col))
+                {
+                    counts[sudoku.GetCellValue(r, col)] = -99; // Mark as handled
+                }
+                else
+                {
+                    CountCandidates(sudoku.GetCandidatesMask(r, col), r, col, counts, lastRow, lastCol);
+                }
+            }
 
-                if (sudoku.IsSet(row, col)) continue;
+            return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
+        }
 
-                var neighborsCandidates = sudoku.GetCellCandidates(row, col);
-                if (neighborsCandidates.Contains(val))
+        private bool CheckBlock(ISudokuBoard sudoku, int blockIdx, out bool changed)
+        {
+            int size = sudoku.EdgeSize;
+            int blockSize = sudoku.BlockSize;
+            Span<int> counts = stackalloc int[size + 1];
+            Span<int> lastRow = stackalloc int[size + 1];
+            Span<int> lastCol = stackalloc int[size + 1];
+
+            int startRow = (blockIdx / blockSize) * blockSize + 1;
+            int startCol = (blockIdx % blockSize) * blockSize + 1;
+
+            for (int r = 0; r < blockSize; r++)
+            {
+                for (int c = 0; c < blockSize; c++)
+                {
+                    int currRow = startRow + r;
+                    int currCol = startCol + c;
+
+                    if (sudoku.IsSet(currRow, currCol))
+                    {
+                        counts[sudoku.GetCellValue(currRow, currCol)] = -99; // Mark as handled
+                    }
+                    else
+                    {
+                        CountCandidates(sudoku.GetCandidatesMask(currRow, currCol), currRow, currCol, counts, lastRow, lastCol);
+                    }
+                }
+            }
+
+            return FindHiddenSingles(sudoku, counts, lastRow, lastCol, out changed);
+        }
+
+        private void CountCandidates(int mask, int r, int c, Span<int> counts, Span<int> lastRow, Span<int> lastCol)
+        {
+            while (mask != 0)
+            {
+                int lowBit = mask & -mask;
+                int val = BitOperations.TrailingZeroCount(lowBit) + 1;
+                mask ^= lowBit;
+
+                if (counts[val] != -99)
+                {
+                    counts[val]++;
+                    lastRow[val] = r;
+                    lastCol[val] = c;
+                }
+            }
+        }
+
+        private bool FindHiddenSingles(ISudokuBoard sudoku, Span<int> counts, Span<int> lastRow, Span<int> lastCol, out bool changed)
+        {
+            changed = false;
+            int size = sudoku.EdgeSize;
+
+            for (int v = 1; v <= size; v++)
+            {
+                int count = counts[v];
+
+                if (count == 1)
+                {
+                    sudoku.SetCellValue(lastRow[v], lastCol[v], v);
+                    changed = true;
+                }
+                else if (count == 0)
                 {
                     return false;
                 }
             }
-
             return true;
         }
+
         private static bool HiddenPair(ISudokuBoard sudoku) => false;
         private static bool NakedPair(ISudokuBoard sudoku) => false;
     }
