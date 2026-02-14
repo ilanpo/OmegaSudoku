@@ -7,8 +7,15 @@ using System.Threading.Tasks;
 
 namespace Sudoku.Core.Interfaces
 {
+    /// <summary>
+    /// renders board in visual format
+    /// </summary>
     public interface ISudokuRenderer
     {
+        /// <summary>
+        /// renders board
+        /// </summary>
+        /// <param name="board">ISudokuBoard object containing board</param>
         void Render(ISudokuBoard board);
     }
 }

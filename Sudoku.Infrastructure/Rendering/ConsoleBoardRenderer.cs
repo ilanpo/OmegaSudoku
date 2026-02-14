@@ -8,8 +8,15 @@ using System.Threading.Tasks;
 
 namespace Sudoku.Infrastructure.Rendering
 {
+    /// <summary>
+    /// renders board to console
+    /// </summary>
     public class ConsoleBoardRenderer : ISudokuRenderer
     {
+        /// <summary>
+        /// renders board in a grid format, writes to console
+        /// </summary>
+        /// <param name="board">ISudokuBoard object containing board</param>
         public void Render(ISudokuBoard board)
         {
             int n = board.EdgeSize;
