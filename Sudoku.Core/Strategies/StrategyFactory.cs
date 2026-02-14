@@ -13,7 +13,7 @@ namespace Sudoku.Core.Strategies
         {
             { 'r', new CandidateReductionStrategy() },
             { 'u', new UniqueCandidateStrategy() },
-            // { 'h', new HiddenPairStrategy() }
+            { 'h', new HiddenPairStrategy() }
             // { 'n', new NakedPairStrategy() }
         };
 

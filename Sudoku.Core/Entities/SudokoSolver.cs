@@ -17,11 +17,6 @@ namespace Sudoku.Core.Entities
         /// </summary>
         public long SearchCounter { get; private set; }
 
-        private bool _useCandidateReduction = false;
-        private bool _useUniqueCandidate = false;
-        private bool _useHiddenPair = false;
-        private bool _useNakedPair = false;
-
         /// <summary>
         /// Method that solves a given sudoku board using strategies specified in given strategies <c>string</c>
         /// </summary>

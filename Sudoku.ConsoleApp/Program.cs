@@ -121,7 +121,7 @@ namespace Sudoku.ConsoleApp
         /// <param name="strategies"> string containing strategies to use in solving </param>
         /// <param name="index"> index of puzzle in file, only used for nicer message </param>
         /// <param name="show"> toggle as to whether to show the rendered board or not </param>
-        static void SolvePuzzle(int[,] grid, int blockSize, string? strategies, int index, bool show)
+        static void SolvePuzzle(int[,] grid, int blockSize, string strategies, int index, bool show)
         {
             var board = new SudokuBoard(blockSize, grid);
             var solver = new SudokuSolver();
