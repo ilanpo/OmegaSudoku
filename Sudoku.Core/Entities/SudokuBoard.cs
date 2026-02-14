@@ -11,24 +11,58 @@ using System.Threading.Tasks;
 
 namespace Sudoku.Core.Entities
 {
+    /// <summary>
+    /// Class that represents a sudoku board and contains methods for interacting and extracting data from board
+    /// </summary>
     public class SudokuBoard : ISudokuBoard
     {
+        /// <summary>
+        /// 1d array containing all set values of cells in board, 0 if empty
+        /// </summary>
         private readonly int[] _puzzle;
 
+        // arrays containing bitmask based constraints for every row column and block
         private readonly int[] _rowConstraints;
         private readonly int[] _columnConstraints;
         private readonly int[] _blockConstraints;
 
+        /// <summary>
+        /// array storing bitmask based constraints for every cell, linearly for better performance
+        /// </summary>
         private readonly int[] _cellConstraints;
 
+        /// <summary>
+        /// array storing the block id of every cell, linearly for better performance.
+        /// pays in memory for performance thanks to not having to calculate which block a cell is in every time
+        /// </summary>
         private readonly int[] _cellToBlockMap;
 
+        /// <summary>
+        /// mask where all bits we are working with are set
+        /// </summary>
         private readonly int _allOnesMask;
 
+        /// <summary>
+        /// size of the edge of a block, so in a 9x9 suduko every block is 3x3 so the block size is 3
+        /// </summary>
         public int BlockSize { get; private set; }
+
+        /// <summary>
+        /// size of the edge of the suduko, so in a 9x9 suduko the edge size is 9
+        /// </summary>
         public int EdgeSize { get; private set; }
+
+        /// <summary>
+        /// number of cells total in puzzle, so in a 9x9 suduko total cell count is 81
+        /// </summary>
         public int TotalCells { get; }
 
+        /// <summary>
+        /// Constructor for board that takes the block size of the board and the initial state of the board
+        /// </summary>
+        /// <param name="blockSize"> size of the edge of a block, so in a 9x9 suduko every block is 3x3 so the block size is 3 </param>
+        /// <param name="initialGrid"> 2s array where every [x,y] is the values of the cell at [row, column] </param>
+        /// <exception cref="NotSupportedException"> throws an exception if the puzzle is larger than the bitmask can support </exception>
         public SudokuBoard(int blockSize, int[,] initialGrid)
         {
             BlockSize = blockSize;
@@ -51,6 +85,10 @@ namespace Sudoku.Core.Entities
             LoadInitialData(initialGrid);
         }
 
+        /// <summary>
+        /// efficient copy constructor for the board, that uses raw memory copying
+        /// </summary>
+        /// <param name="other"> board that is copied </param>
         private SudokuBoard(SudokuBoard other)
         {
             BlockSize = other.BlockSize;
@@ -78,10 +116,34 @@ namespace Sudoku.Core.Entities
             Buffer.BlockCopy(other._cellToBlockMap, 0, _cellToBlockMap, 0, TotalCells * sizeof(int));
         }
 
+        /// <summary>
+        /// clones board into new identical board object
+        /// </summary>
+        /// <returns>new identical board object</returns>
         public ISudokuBoard Clone() => new SudokuBoard(this);
+
+        /// <summary>
+        /// returns value of specified cell, 0 if empty
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <returns>value of cell,  0 if empty</returns>
         public int GetCellValue(int row, int col) => _puzzle[GetIndex(row - 1, col - 1)];
+
+        /// <summary>
+        /// returns bool of if cell's value is set
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <returns>true if cell's values is set, false if cell is empty</returns>
         public bool IsSet(int row, int col) => _puzzle[GetIndex(row - 1, col - 1)] != 0;
 
+        /// <summary>
+        /// sets a cells value and updates the relevant bitmasks
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <param name="val">new value</param>
         public void SetCellValue(int row, int col, int val)
         {
             int r = row - 1;
@@ -101,6 +163,13 @@ namespace Sudoku.Core.Entities
 
         }
 
+        /// <summary>
+        /// checks if given assignment is legal according to the constraints and bitmasks
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <param name="val">new value</param>
+        /// <returns>true if assignment is legal, false if it isnt</returns>
         public bool IsLegalAssignment(int row, int col, int val)
         {
             int r = row - 1;
@@ -111,6 +180,12 @@ namespace Sudoku.Core.Entities
             return ((_rowConstraints[r] | _columnConstraints[c] | _blockConstraints[blockIdx]) & valMask) == 0;
         }
 
+        /// <summary>
+        /// finds all valid candidates for a cell
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <returns> list of all valid candidates </returns>
         public List<int> GetCellCandidates(int row, int col)
         {
             var candidates = new List<int>(EdgeSize);
@@ -132,11 +207,21 @@ namespace Sudoku.Core.Entities
             return candidates;
         }
 
+        /// <summary>
+        /// removes a candidate from a cells constraints
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <param name="val">value removed</param>
         public void RemoveCellCandidate(int row, int col, int val)
         {
             _cellConstraints[GetIndex(row - 1, col - 1)] &= ~(1 << (val - 1));
         }
 
+        /// <summary>
+        /// scans the contraints to see if puzzle is solved
+        /// </summary>
+        /// <returns> true if solved, false if not</returns>
         public bool IsSolved()
         {
             for (int i = 0; i < EdgeSize; i++)
@@ -151,6 +236,10 @@ namespace Sudoku.Core.Entities
             return true;
         }
 
+        /// <summary>
+        /// returns a list of all cells which have not been assigned a value
+        /// </summary>
+        /// <returns>list of cells which have not been assigned a value</returns>
         public List<(int Row, int Col)> GetNonAssignedCells()
         {
             var list = new List<(int, int)>(TotalCells);
@@ -166,6 +255,10 @@ namespace Sudoku.Core.Entities
             return list;
         }
 
+        /// <summary>
+        /// returns a list of all cells which have not been assigned a value and their count of valid candidates
+        /// </summary>
+        /// <returns>list of cells which have not been assigned a value and their count of valid candidates</returns>
         public List<(int Row, int Col, int Count)>? GetNonAssignedCellsWithCount()
         {
             var list = new List<(int, int, int)>(TotalCells);
@@ -188,6 +281,12 @@ namespace Sudoku.Core.Entities
             return list;
         }
 
+        /// <summary>
+        /// gets the complete candidate bitmask for a cell
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <returns>complete candidate bitmask for given cell</returns>
         public int GetCandidatesMask(int row, int col)
         {
             int r = row - 1;
@@ -200,6 +299,10 @@ namespace Sudoku.Core.Entities
             return ~usedMask & _allOnesMask;
         }
 
+        /// <summary>
+        /// finds and returns best empty cell in puzzle according to lowest number of possible candidates 
+        /// </summary>
+        /// <returns>best empty cell in puzzle and its count of valid candidates</returns>
         public (int Row, int Col, int Count) GetBestEmptyCell()
         {
             int minCount = int.MaxValue;
@@ -235,6 +338,9 @@ namespace Sudoku.Core.Entities
             return (bestRow, bestCol, minCount);
         }
 
+        /// <summary>
+        /// initialises the cell to block map according to edge size and block size
+        /// </summary>
         private void InitializeConstraints()
         {
             for (int r = 0; r < EdgeSize; r++)
@@ -246,6 +352,10 @@ namespace Sudoku.Core.Entities
             }
         }
 
+        /// <summary>
+        /// loads in the 2d array representing the initial state of the board, storing the cells in the relevant array initialising their constraints
+        /// </summary>
+        /// <param name="grid">2d int array containing the values of all cells in the board, 0 if empty</param>
         private void LoadInitialData(int[,] grid)
         {
             for (int row = 0; row < EdgeSize; row++)
@@ -268,8 +378,18 @@ namespace Sudoku.Core.Entities
             }
         }
 
+        /// <summary>
+        /// returns the 1d index of a cell based on its 2d position
+        /// </summary>
+        /// <param name="row">row of cell</param>
+        /// <param name="col">column of cell</param>
+        /// <returns></returns>
         private int GetIndex(int row, int col) => row * EdgeSize + col;
 
+        /// <summary>
+        /// builds a 1d string representation of board
+        /// </summary>
+        /// <returns>1d string representation of board</returns>
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder(TotalCells);
